@@ -1,13 +1,13 @@
 package com.shark.game.entity.room;
 
-import com.shark.game.entity.PlayerDo;
+import com.shark.game.entity.player.PlayerDO;
 import com.shark.game.manager.PlayerManager;
 import com.shark.game.service.RedBlackGameStatusService;
 import io.grpc.stub.StreamObserver;
 
 import java.util.*;
 
-public class RedBlackGameRoom extends BaseStateRoom {
+public class RedBlackGameRoomDO extends BaseStateRoomDO {
 
     private final int STATUS_OPEN_RESULT = 1, STATUS_SEND_RESULT = 2;
 
@@ -76,7 +76,6 @@ public class RedBlackGameRoom extends BaseStateRoom {
                 sendResult();
                 break;
         }
-
     }
 
     private void startBet() {
@@ -102,7 +101,7 @@ public class RedBlackGameRoom extends BaseStateRoom {
 
     private void sendResult() {
         for(String token: tokenObserverMap.keySet()) {
-            PlayerDo playerDo = PlayerManager.getInstance().findByToken(token);
+            PlayerDO playerDo = PlayerManager.getInstance().findByToken(token);
             Map<Integer, Integer> betMap = tokenBetMap.get(token);
             if(betMap != null) {
                 int money = playerDo.getMoney();
@@ -152,7 +151,7 @@ public class RedBlackGameRoom extends BaseStateRoom {
             betMap.put(BLACK_POSITION, 0);
             tokenBetMap.put(token, betMap);
         }
-        PlayerDo playerDo = PlayerManager.getInstance().findByToken(token);
+        PlayerDO playerDo = PlayerManager.getInstance().findByToken(token);
         if(status != STATUS_START) {
             RedBlackGameStatusService.StatusResponse response = RedBlackGameStatusService.StatusResponse.newBuilder()
                     .setStatus(-1).setMessage("現在非下注階段").build();

@@ -1,6 +1,6 @@
 package com.shark.game.manager;
 
-import com.shark.game.entity.PlayerDo;
+import com.shark.game.entity.player.PlayerDO;
 
 import java.util.HashMap;
 
@@ -9,13 +9,13 @@ public class PlayerManager {
 
     private static PlayerManager instance;
 
-    private HashMap<String, PlayerDo> tokenPlayerMap = new HashMap<>();
+    private HashMap<String, PlayerDO> tokenPlayerMap = new HashMap<>();
 
     private HashMap<Integer, Integer> playerIdRoomIdMap = new HashMap<>();
 
     private PlayerManager() {}
 
-    public void putPlayer(String token, PlayerDo playerDo) {
+    public void putPlayer(String token, PlayerDO playerDo) {
         tokenPlayerMap.put(token, playerDo);
     }
 
@@ -30,7 +30,7 @@ public class PlayerManager {
         return instance;
     }
 
-    public PlayerDo findByToken(String token) {
+    public PlayerDO findByToken(String token) {
         return tokenPlayerMap.get(token);
     }
 }

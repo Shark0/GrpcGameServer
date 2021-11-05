@@ -3,7 +3,7 @@ package com.shark.game.service;
 
 message EnterGameRoomRequest {
   string token = 1;
-  int32 roomId = 2;
+  int32 roomType = 2;
 }
 
 message EnterGameRoomResponse {

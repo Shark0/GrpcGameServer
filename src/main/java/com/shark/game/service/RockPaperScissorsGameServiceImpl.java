@@ -1,16 +1,16 @@
 package com.shark.game.service;
 
 
-import com.shark.game.entity.room.RockPaperScissorsGameRoom;
+import com.shark.game.entity.room.RockPaperScissorsGameRoomDO;
 import com.shark.game.manager.RoomManager;
 import io.grpc.stub.StreamObserver;
 
-
 public class RockPaperScissorsGameServiceImpl extends RockPaperScissorsGameServiceGrpc.RockPaperScissorsGameServiceImplBase {
+
     @Override
     public void start(RockPaperScissorsGameServiceOuterClass.GameRequest request, StreamObserver<RockPaperScissorsGameServiceOuterClass.GameResponse> responseObserver) {
         String token = request.getToken();
-        RockPaperScissorsGameRoom room = (RockPaperScissorsGameRoom) RoomManager.getInstance().getRoomByToken(token);
+        RockPaperScissorsGameRoomDO room = (RockPaperScissorsGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
         if(room == null) {
             sendNotFindRoomResponse(responseObserver);
             return;

@@ -1,7 +1,8 @@
 package com.shark.game.service;
 
-import com.shark.game.entity.room.RedBlackGameRoom;
-import com.shark.game.entity.room.RockPaperScissorsGameRoom;
+import com.shark.game.entity.room.CardSeatRoomDO;
+import com.shark.game.entity.room.RedBlackGameRoomDO;
+import com.shark.game.entity.room.RockPaperScissorsGameRoomDO;
 import com.shark.game.manager.RoomManager;
 import io.grpc.stub.StreamObserver;
 
@@ -13,22 +14,25 @@ public class EnterGameRoomServiceImpl extends EnterGameRoomServiceGrpc.EnterGame
     public void start(EnterGameRoomServiceOuterClass.EnterGameRoomRequest request,
                       StreamObserver<EnterGameRoomServiceOuterClass.EnterGameRoomResponse> responseObserver) {
         String token = request.getToken();
-        int roomId = request.getRoomId();
+        int roomType = request.getRoomType();
 
-        switch (roomId) {
+        switch (roomType) {
             case 1: //猜拳
-                RockPaperScissorsGameRoom rockPaperScissorsGameRoom = new RockPaperScissorsGameRoom();
+                RockPaperScissorsGameRoomDO rockPaperScissorsGameRoom = new RockPaperScissorsGameRoomDO();
                 RoomManager.getInstance().putRoomByToken(token, rockPaperScissorsGameRoom);
                 sendEnterRoomResponse(responseObserver);
                 break;
             case 2:
-                RedBlackGameRoom redBlackGameRoom = (RedBlackGameRoom)
-                        RoomManager.getInstance().findRoomById(RED_BLACK_ROOM_ID);
+                RedBlackGameRoomDO redBlackGameRoom =
+                        (RedBlackGameRoomDO) RoomManager.getInstance().findRoomByType(RED_BLACK_ROOM_TYPE);
                 RoomManager.getInstance().putRoomByToken(token, redBlackGameRoom);
                 sendEnterRoomResponse(responseObserver);
                 break;
             case 3:
-                //TODO
+                CardSeatRoomDO cardSeatRoomDo =
+                        (CardSeatRoomDO) RoomManager.getInstance().findRoomByType(CARD_SEAT_ROOM_TYPE);
+                RoomManager.getInstance().putRoomByToken(token, cardSeatRoomDo);
+                sendEnterRoomResponse(responseObserver);
                 break;
             default:
                 sendNotFindRoomResponse(responseObserver);

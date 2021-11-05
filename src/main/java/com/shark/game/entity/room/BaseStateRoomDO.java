@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public abstract class BaseStateRoom extends BaseRoom {
+public abstract class BaseStateRoomDO extends BaseRoomDO {
 
     protected final int STATUS_START = 0;
     protected int status = 0;

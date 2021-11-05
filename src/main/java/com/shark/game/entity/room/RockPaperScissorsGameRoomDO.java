@@ -1,15 +1,15 @@
 package com.shark.game.entity.room;
 
-import com.shark.game.entity.PlayerDo;
+import com.shark.game.entity.player.PlayerDO;
 import com.shark.game.service.RockPaperScissorsGameServiceOuterClass;
 import io.grpc.stub.StreamObserver;
 
-public class RockPaperScissorsGameRoom extends BaseRoom {
+public class RockPaperScissorsGameRoomDO extends BaseRoomDO {
 
     public void gameStart(RockPaperScissorsGameServiceOuterClass.GameRequest request,
                           StreamObserver<RockPaperScissorsGameServiceOuterClass.GameResponse> responseObserver) {
         String token = request.getToken();
-        PlayerDo playerDo = findPlayerByToken(token);
+        PlayerDO playerDo = findPlayerByToken(token);
         if(playerDo == null) {
             sendFailResponse(responseObserver, -1, "用戶不存在");
             return;

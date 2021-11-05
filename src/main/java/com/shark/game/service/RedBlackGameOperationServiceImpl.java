@@ -1,6 +1,6 @@
 package com.shark.game.service;
 
-import com.shark.game.entity.room.RedBlackGameRoom;
+import com.shark.game.entity.room.RedBlackGameRoomDO;
 import com.shark.game.manager.RoomManager;
 import io.grpc.stub.StreamObserver;
 
@@ -26,7 +26,7 @@ public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServ
     }
 
     private void exitRoomOperation(StreamObserver<RedBlackGameOperationService.OperationResponse> responseObserver, String token) {
-        RedBlackGameRoom room = (RedBlackGameRoom) RoomManager.getInstance().getRoomByToken(token);
+        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
         room.exitGame(token);
         RedBlackGameOperationService.OperationResponse response =
                 RedBlackGameOperationService.OperationResponse.newBuilder()
@@ -36,7 +36,7 @@ public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServ
     }
 
     private void placeBetOperation(StreamObserver responseObserver, String token, int position, int bet) {
-        RedBlackGameRoom room = (RedBlackGameRoom) RoomManager.getInstance().getRoomByToken(token);
+        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
         room.placeBet(responseObserver, token, position, bet);
     }
 

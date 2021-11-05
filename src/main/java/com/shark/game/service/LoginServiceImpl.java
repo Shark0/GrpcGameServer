@@ -1,6 +1,7 @@
 package com.shark.game.service;
 
-import com.shark.game.entity.PlayerDo;
+
+import com.shark.game.entity.player.PlayerDO;
 import com.shark.game.manager.PlayerManager;
 import io.grpc.stub.StreamObserver;
 
@@ -11,7 +12,7 @@ public class LoginServiceImpl extends LoginServiceGrpc.LoginServiceImplBase {
     @Override
     public void start(LoginServiceOuterClass.LoginRequest request, StreamObserver<LoginServiceOuterClass.LoginResponse> responseObserver) {
         int playerId = request.getPlayerId();
-        PlayerDo player = findPlayer(playerId);
+        PlayerDO player = findPlayer(playerId);
         if(player == null) {
             sendLoginFailResponse(responseObserver);
         }
@@ -37,9 +38,9 @@ public class LoginServiceImpl extends LoginServiceGrpc.LoginServiceImplBase {
         responseObserver.onCompleted();
     }
 
-    private PlayerDo findPlayer(int playerId) {
+    private PlayerDO findPlayer(int playerId) {
         //FIXME load from db
-        PlayerDo playerDo = new PlayerDo();
+        PlayerDO playerDo = new PlayerDO();
         playerDo.setId(playerId);
         playerDo.setName("Player" + playerId);
         int money = new Random().nextInt(10000) + 100000;
@@ -47,7 +48,7 @@ public class LoginServiceImpl extends LoginServiceGrpc.LoginServiceImplBase {
         return playerDo;
     }
 
-    private String generateToken(PlayerDo player) {
+    private String generateToken(PlayerDO player) {
         //FIXME use jwt
         String token = String.valueOf(player.getId());
         return token;
