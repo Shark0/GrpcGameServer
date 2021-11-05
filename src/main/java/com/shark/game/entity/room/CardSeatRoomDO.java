@@ -97,7 +97,11 @@ public class CardSeatRoomDO extends BaseSeatRoomDO {
                     if (k != 0) {
                         builder.append(", ");
                     }
-                    builder.append(cardSeatJ.getCardList().get(k));
+                    if(k == 0 && i != j) {
+                        builder.append("*");
+                    } else {
+                        builder.append(cardSeatJ.getCardList().get(k));
+                    }
                 }
                 builder.append("] 目前下注金額: ").append(cardSeatJ.getBetMoney()).append(" ");
             }
