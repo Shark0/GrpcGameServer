@@ -13,13 +13,15 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
 
     private final Integer RED_POSITION = 0, BLACK_POSITION = 1;
 
-    private final Map<String, StreamObserver> tokenObserverMap = new HashMap<>();
-
-    private final Map<String, Map<Integer, Integer>> tokenBetMap = new HashMap<>();
+    private final Map<Long, Map<Integer, Integer>> playerIdBetMap = new HashMap<>();
 
     private int redCard;
 
     private int blackCard;
+
+    public RedBlackGameRoomDO(int agentId, int gameType, int minBet) {
+        super(agentId, gameType, minBet);
+    }
 
     @Override
     protected Map<Integer, Integer> generateTimeStateList() {
@@ -44,8 +46,8 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
                 message = "發獎中, " + (statusTime / 1000) + "秒後開始下注";
                 break;
         }
-        for(String token: tokenObserverMap.keySet()) {
-            sendStatusResponse(token, message);
+        for(Long playerId: playerIdObserverMap.keySet()) {
+            sendStatusResponse(playerId, message);
         }
     }
 
@@ -79,10 +81,10 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
     }
 
     private void startBet() {
-        tokenBetMap.clear();
+        playerIdBetMap.clear();
         String message = "開始下注, " + (statusTime / 1000) + "秒後開獎";
-        for(String token: tokenObserverMap.keySet()) {
-            sendStatusResponse(token, message);
+        for(Long playerId: playerIdObserverMap.keySet()) {
+            sendStatusResponse(playerId, message);
         }
     }
 
@@ -94,17 +96,17 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
         int blackChoose = new Random().nextInt(cardList.size() - 1);
         blackCard = cardList.get(blackChoose);
         String message = "開獎結果, 紅: " + redCard + ", 黑: " + blackCard + ((redCard > blackCard)? ", 紅贏, ": ", 黑贏, ") + "4秒後發送獎勵";
-        for(String token: tokenObserverMap.keySet()) {
-            sendStatusResponse(token, message);
+        for(Long playerId: playerIdObserverMap.keySet()) {
+            sendStatusResponse(playerId, message);
         }
     }
 
     private void sendResult() {
-        for(String token: tokenObserverMap.keySet()) {
-            PlayerDO playerDo = PlayerManager.getInstance().findByToken(token);
-            Map<Integer, Integer> betMap = tokenBetMap.get(token);
+        for(Long playerId: playerIdObserverMap.keySet()) {
+            PlayerDO playerDo = PlayerManager.getInstance().findById(playerId);
+            Map<Integer, Integer> betMap = playerIdBetMap.get(playerId);
             if(betMap != null) {
-                int money = playerDo.getMoney();
+                long money = playerDo.getMoney();
                 int totalBet = 0;
                 int win = 0;
                 Integer redBet = betMap.get(RED_POSITION);
@@ -121,17 +123,17 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
                 playerDo.setMoney(money);
                 String message = "這場總下注金額: " + totalBet + ", 下紅金額: " + redBet + ", 下黑金額: " + blackBet +
                         ", 贏: " + win + ", 玩家剩餘金額: " + playerDo.getMoney()  + ", 4秒後發送獎勵";
-                sendStatusResponse(token, message);
+                sendStatusResponse(playerId, message);
             } else {
                 String message = "這場沒下注, 4秒後發送獎勵";
-                sendStatusResponse(token, message);
+                sendStatusResponse(playerId, message);
             }
         }
     }
 
-    private void sendStatusResponse(String token, String message) {
-        System.out.println("sendStatusResponse token = " + token + ", message = " + message);
-        StreamObserver observer = tokenObserverMap.get(token);
+    private void sendStatusResponse(Long playerId, String message) {
+        System.out.println("sendStatusResponse playerId = " + playerId + ", message = " + message);
+        StreamObserver observer = playerIdObserverMap.get(playerId);
         RedBlackGameStatusService.StatusResponse gameStatusResponse;
         gameStatusResponse = RedBlackGameStatusService.StatusResponse.newBuilder()
                 .setStatus(status).setMessage(message).build();
@@ -139,19 +141,19 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
             observer.onNext(gameStatusResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            tokenObserverMap.remove(token);
+            playerIdObserverMap.remove(playerId);
         }
     }
 
-    public void placeBet(StreamObserver observer, String token, int position, int bet) {
-        Map<Integer, Integer> betMap = tokenBetMap.get(token);
+    public void placeBet(StreamObserver observer, Long playerId, int position, int bet) {
+        Map<Integer, Integer> betMap = playerIdBetMap.get(playerId);
         if(betMap == null) {
             betMap = new HashMap<>();
             betMap.put(RED_POSITION, 0);
             betMap.put(BLACK_POSITION, 0);
-            tokenBetMap.put(token, betMap);
+            playerIdBetMap.put(playerId, betMap);
         }
-        PlayerDO playerDo = PlayerManager.getInstance().findByToken(token);
+        PlayerDO playerDo = PlayerManager.getInstance().findById(playerId);
         if(status != STATUS_START) {
             RedBlackGameStatusService.StatusResponse response = RedBlackGameStatusService.StatusResponse.newBuilder()
                     .setStatus(-1).setMessage("現在非下注階段").build();
@@ -172,7 +174,7 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
         }
         Integer redBet = betMap.get(RED_POSITION);
         Integer blackBet = betMap.get(BLACK_POSITION);
-        Integer money = playerDo.getMoney();
+        long money = playerDo.getMoney();
         money = money - bet;
         playerDo.setMoney(money);
         if(position == RED_POSITION) {
@@ -191,15 +193,15 @@ public class RedBlackGameRoomDO extends BaseStateRoomDO {
         observer.onCompleted();
     }
 
-    public void enterGame(StreamObserver observer, String token) {
-        tokenObserverMap.put(token, observer);
+    public void enterGame(StreamObserver observer, Long playerId) {
+        playerIdObserverMap.put(playerId, observer);
     }
 
     public void exitGame(String token) {
         System.out.println("RedBlackGameRoom exitGame(): token = " + token);
-        StreamObserver observer = tokenObserverMap.get(token);
+        StreamObserver observer = playerIdObserverMap.get(token);
         if(observer != null) {
-            tokenObserverMap.remove(token);
+            playerIdObserverMap.remove(token);
             observer.onCompleted();
         }
     }

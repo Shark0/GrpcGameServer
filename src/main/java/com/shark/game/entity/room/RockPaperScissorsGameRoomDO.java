@@ -1,15 +1,21 @@
 package com.shark.game.entity.room;
 
 import com.shark.game.entity.player.PlayerDO;
+import com.shark.game.manager.PlayerManager;
 import com.shark.game.service.RockPaperScissorsGameServiceOuterClass;
 import io.grpc.stub.StreamObserver;
 
 public class RockPaperScissorsGameRoomDO extends BaseRoomDO {
 
+    public RockPaperScissorsGameRoomDO(int agentId, int gameType, int minBet) {
+        super(agentId, gameType, minBet);
+    }
+
     public void gameStart(RockPaperScissorsGameServiceOuterClass.GameRequest request,
                           StreamObserver<RockPaperScissorsGameServiceOuterClass.GameResponse> responseObserver) {
         String token = request.getToken();
-        PlayerDO playerDo = findPlayerByToken(token);
+        long playerId = Long.parseLong(token);
+        PlayerDO playerDo = PlayerManager.getInstance().findById(playerId);
         if(playerDo == null) {
             sendFailResponse(responseObserver, -1, "用戶不存在");
             return;
@@ -22,7 +28,7 @@ public class RockPaperScissorsGameRoomDO extends BaseRoomDO {
             return;
         }
         int result = generateResult(userOperation, computerOperation, bet);
-        int playerMoney = playerDo.getMoney() + result;
+        long playerMoney = playerDo.getMoney() + result;
         System.out.println("playerMoney = " + playerMoney + ", result = " + result);
         playerDo.setMoney(playerMoney);
 
@@ -76,7 +82,7 @@ public class RockPaperScissorsGameRoomDO extends BaseRoomDO {
         return result;
     }
 
-    private void sendSuccessResponse(StreamObserver<RockPaperScissorsGameServiceOuterClass.GameResponse> responseObserver, int computerOperation, int result, int playerMoney) {
+    private void sendSuccessResponse(StreamObserver<RockPaperScissorsGameServiceOuterClass.GameResponse> responseObserver, int computerOperation, int result, long playerMoney) {
         RockPaperScissorsGameServiceOuterClass.GameResponse response = RockPaperScissorsGameServiceOuterClass.GameResponse.newBuilder()
                 .setStatus(0)
                 .setResult(result)

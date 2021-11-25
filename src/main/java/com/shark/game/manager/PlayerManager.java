@@ -9,18 +9,17 @@ public class PlayerManager {
 
     private static PlayerManager instance;
 
-    private HashMap<String, PlayerDO> tokenPlayerMap = new HashMap<>();
+    private HashMap<Long, PlayerDO> playerIdPlayerMap = new HashMap<>();
 
-    private HashMap<Integer, Integer> playerIdRoomIdMap = new HashMap<>();
 
     private PlayerManager() {}
 
-    public void putPlayer(String token, PlayerDO playerDo) {
-        tokenPlayerMap.put(token, playerDo);
+    public void putPlayer(PlayerDO playerDo) {
+        playerIdPlayerMap.put(playerDo.getId(), playerDo);
     }
 
-    public void removePlayer(String token) {
-        tokenPlayerMap.remove(token);
+    public void removePlayer(Long playerId) {
+        playerIdPlayerMap.remove(playerId);
     }
 
     public static PlayerManager getInstance() {
@@ -30,7 +29,7 @@ public class PlayerManager {
         return instance;
     }
 
-    public PlayerDO findByToken(String token) {
-        return tokenPlayerMap.get(token);
+    public PlayerDO findById(Long id) {
+        return playerIdPlayerMap.get(id);
     }
 }

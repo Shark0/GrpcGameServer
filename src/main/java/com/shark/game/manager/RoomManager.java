@@ -1,11 +1,9 @@
 package com.shark.game.manager;
 
 import com.shark.game.entity.room.BaseRoomDO;
-import com.shark.game.entity.room.BaseSeatRoomDO;
-import com.shark.game.entity.room.CardSeatRoomDO;
 import com.shark.game.entity.room.RedBlackGameRoomDO;
+import com.shark.game.entity.room.RockPaperScissorsGameRoomDO;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,44 +16,46 @@ public class RoomManager {
 
     private static RoomManager instance;
 
-    private Map<String, BaseRoomDO> tokenRoomMap = new HashMap<>();
+    private final Map<String, BaseRoomDO> tokenRoomMap = new HashMap<>();
 
-    private Map<Integer, BaseRoomDO> roomIdRoomMap = new HashMap<>();
+    private final Map<Integer, Map<Integer, BaseRoomDO>> agentIdRoomTypeRoomMap = new HashMap<>();
 
-    private Map<Integer, List<BaseSeatRoomDO>> roomTypeQueueListMap = new HashMap<>();
+
 
     private RoomManager() {}
 
     public void init() {
-        RedBlackGameRoomDO redBlackGameRoom = new RedBlackGameRoomDO();
-        redBlackGameRoom.init();
-        roomIdRoomMap.put(RED_BLACK_ROOM_TYPE, redBlackGameRoom);
+        List<Integer> agentIdList = findAgent();
+        for(Integer agentId: agentIdList) {
+            RedBlackGameRoomDO redBlackGameRoom = new RedBlackGameRoomDO(agentId, RED_BLACK_ROOM_TYPE, 10);
+            redBlackGameRoom.init();
+            Map<Integer, BaseRoomDO> roomIdRoomMap = new HashMap<>();
+            roomIdRoomMap.put(RED_BLACK_ROOM_TYPE, redBlackGameRoom);
+            agentIdRoomTypeRoomMap.put(agentId, roomIdRoomMap);
+        }
     }
 
-    public BaseRoomDO findRoomByType(Integer roomType) {
+    private List<Integer> findAgent() {
+        //FIXME load from agent id list
+        return List.of(1);
+    }
+
+    public synchronized BaseRoomDO findRoomByAgentIdAndRoomType(Integer agentId, Integer roomType) {
         switch (roomType) {
+            case ROCK_PAPER_SCISSORS_ROOM_TYPE:
+                return new RockPaperScissorsGameRoomDO(agentId, roomType, 10);
+
             case RED_BLACK_ROOM_TYPE:
-                return roomIdRoomMap.get(roomType);
+                return agentIdRoomTypeRoomMap.get(agentId).get(roomType);
+
             case CARD_SEAT_ROOM_TYPE:
-                List<BaseSeatRoomDO> baseSeatRoomDoList = roomTypeQueueListMap.get(roomType);
-                if(baseSeatRoomDoList == null) {
-                    baseSeatRoomDoList = new ArrayList<>();
-                    roomTypeQueueListMap.put(roomType, baseSeatRoomDoList);
-                }
-                for(BaseSeatRoomDO baseSeatRoomDo: baseSeatRoomDoList) {
-                    if(baseSeatRoomDo.isQueuing()) {
-                        return baseSeatRoomDo;
-                    }
-                }
-                CardSeatRoomDO cardSeatRoomDo = new CardSeatRoomDO(CARD_SEAT_ROOM_TYPE);
-                cardSeatRoomDo.init();
-                baseSeatRoomDoList.add(cardSeatRoomDo);
-                return cardSeatRoomDo;
+                //TODO
+                return null;
         }
         return null;
     }
 
-    public void putRoomByToken(String token, BaseRoomDO room) {
+    public synchronized void putRoomByToken(String token, BaseRoomDO room) {
         tokenRoomMap.put(token, room);
     }
 
@@ -70,7 +70,4 @@ public class RoomManager {
         return instance;
     }
 
-    public void removeRoomFromQueue(Integer gameType, BaseSeatRoomDO baseSeatRoomDo) {
-        roomTypeQueueListMap.get(gameType).remove(baseSeatRoomDo);
-    }
 }

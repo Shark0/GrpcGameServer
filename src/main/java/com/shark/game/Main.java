@@ -17,8 +17,6 @@ public class Main {
                 .addService(new RockPaperScissorsGameServiceImpl())
                 .addService(new RedBlackGameStatusServiceImpl())
                 .addService(new RedBlackGameOperationServiceImpl())
-                .addService(new CardSeatGameStatusServiceImpl())
-                .addService(new CardSeatGameOperationServiceImpl())
                 .build();
         server.start();
         System.out.println("服務啟動");

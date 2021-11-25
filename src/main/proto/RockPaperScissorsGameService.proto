@@ -11,7 +11,7 @@ message GameResponse {
   int32 status = 1;
   string message = 2;
   int32 computerOperation = 3;
-  int32 playerMoney = 4;
+  int64 playerMoney = 4;
   int32 result = 5;
 
 }

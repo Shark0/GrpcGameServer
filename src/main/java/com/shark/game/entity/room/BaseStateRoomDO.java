@@ -11,6 +11,10 @@ public abstract class BaseStateRoomDO extends BaseRoomDO {
     protected Map<Integer, Integer> statusTimeMap;
     protected int statusTime = 0;
 
+    public BaseStateRoomDO(int agentId, int gameType, int minBet) {
+        super(agentId, gameType, minBet);
+    }
+
     public void init() {
         statusTimeMap = generateTimeStateList();
         status = STATUS_START;

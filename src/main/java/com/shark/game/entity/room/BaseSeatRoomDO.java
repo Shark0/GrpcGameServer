@@ -1,83 +1,98 @@
 package com.shark.game.entity.room;
 
-import com.shark.game.manager.RoomManager;
-import com.shark.game.service.CardSeatGameService;
+import com.shark.game.entity.player.PlayerDO;
+import com.shark.game.manager.PlayerManager;
 import io.grpc.stub.StreamObserver;
 
 import java.util.*;
 
 public abstract class BaseSeatRoomDO extends BaseRoomDO {
 
-    protected int gameType;
+    protected int maxSeatCount, minSeatCount;
 
-    protected List<String> queueTokenList = new ArrayList<>();
+    protected final Map<Long, StreamObserver> playerIdStatusObserverMap = new HashMap<>();
 
-    protected int queueMaxCount, queueMinCount;
+    protected int SEAT_STATUS_WAITING = 0;
 
-    protected final Map<String, StreamObserver> tokenStatusObserverMap = new HashMap<>();
+    protected Map<Integer, SeatDO> seatIdSeatMap = new HashMap<>();
 
-    protected List<CardSeatDO> cardSeatDOList = new ArrayList<>();
-    protected Map<String, CardSeatDO> tokenSeatDOMap = new HashMap<>();
 
-    public BaseSeatRoomDO(int gameType) {
-        this.gameType = gameType;
+    public BaseSeatRoomDO(int agentId, int gameType, int minBet, int maxSeatCount, int minSeatCount) {
+        super(agentId, gameType, minBet);
+        this.maxSeatCount = maxSeatCount;
+        this.minSeatCount = minSeatCount;
+        init();
     }
 
-    public void init() {
-        queueMaxCount = generateMaxCount();
-        queueMinCount = generateMinCount();
-        checkQueueStatus();
+    protected void initSeatMap() {
+        for(int i = 0; i < maxSeatCount; i ++) {
+            seatIdSeatMap.put(i, null);
+        }
     }
 
-    protected abstract int generateMaxCount();
+    private void init() {
+        initSeatMap();
+        startWaitingStatus();
+    }
 
-    protected abstract int generateMinCount();
-
-    private void checkQueueStatus() {
-        System.out.println("CardSeatRoomDO checkQueueStatus()");
+    private void startWaitingStatus() {
+        System.out.println("CardSeatRoomDO startWaitingStatus()");
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                for(String token: queueTokenList) {
-                    StreamObserver observer = tokenStatusObserverMap.get(token);
-                    try {
-                        CardSeatGameService.CardSeatGameStatusResponse response
-                                = CardSeatGameService.CardSeatGameStatusResponse.newBuilder()
-                                .setStatus(0).setMessage("排隊等待中").build();
-                        observer.onNext(response);
-                    } catch (Exception e) {
-                        queueTokenList.remove(token);
-                        tokenStatusObserverMap.remove(token);
-                    }
-                }
-
-
-                int queueCount = queueTokenList.size();
-                if (queueCount >= queueMinCount) {
-                    RoomManager.getInstance().removeRoomFromQueue(gameType, BaseSeatRoomDO.this);
-                    gameStart();
+                checkSeatLive();
+                int emptySeatCount = findEmptySeatIdList().size();
+                if ((maxSeatCount - emptySeatCount) >= minSeatCount) {
+                    startGameStatus();
                 } else {
-                    checkQueueStatus();
+                    startWaitingStatus();
                 }
             }
-        }, 5000);
+        }, 1000);
     }
 
-    public boolean enterGame(StreamObserver observer, String token) {
-        int queueCount = queueTokenList.size();
-        if (queueCount < queueMaxCount) {
-            queueTokenList.add(token);
-            tokenStatusObserverMap.put(token, observer);
+    protected abstract void checkSeatLive();
+
+    public synchronized boolean enterGame(StreamObserver observer, long playerId) {
+        List<Integer> emptySeatIdList = findEmptySeatIdList();
+        if (emptySeatIdList.size() < maxSeatCount) {
+            playerIdStatusObserverMap.put(playerId, observer);
+            addPlayerToRandomSeat(playerId, emptySeatIdList);
             return true;
         }
         return false;
     }
 
-    public boolean isQueuing() {
-        return queueTokenList.size() < queueMaxCount;
+    protected void addPlayerToRandomSeat(long playerId, List<Integer> emptySeatIdList) {
+        PlayerDO playerDO = PlayerManager.getInstance().findById(playerId);
+        SeatDO seatDO = new SeatDO();
+        seatDO.setPlayerId(playerDO.getId());
+        seatDO.setPlayerName(playerDO.getName());
+        seatDO.setStatus(SEAT_STATUS_WAITING);
+        Random random = new Random();
+        Integer randomEmptySeatId = emptySeatIdList.get(random.nextInt(emptySeatIdList.size()));
+        seatIdSeatMap.put(randomEmptySeatId, seatDO);
     }
 
-    protected abstract void gameStart();
+    protected List<Integer> findEmptySeatIdList() {
+        List<Integer> emptySeatIdList = new ArrayList<>();
+        for(Integer key: seatIdSeatMap.keySet()) {
+            if(seatIdSeatMap.get(key) == null) {
+                emptySeatIdList.add(key);
+            }
+        }
+        return emptySeatIdList;
+    }
 
+    protected abstract void startGameStatus();
 
+    protected void changeSeatListStatus(int status) {
+        for(Integer key: seatIdSeatMap.keySet()) {
+            SeatDO seatDO = seatIdSeatMap.get(key);
+            if(seatDO == null) {
+                continue;
+            }
+            seatDO.setStatus(status);
+        }
+    }
 }

@@ -4,7 +4,11 @@ import lombok.Data;
 
 @Data
 public class PlayerDO {
-    private Integer id;
+    private long id;
+
+    private int agentId;
+
     private String name;
-    private Integer money;
+
+    private long money;
 }

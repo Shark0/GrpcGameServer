@@ -2,11 +2,12 @@ package com.shark.game.service;
 
 import com.shark.game.entity.room.RedBlackGameRoomDO;
 import com.shark.game.manager.RoomManager;
+import com.shark.game.util.TokenUtil;
 import io.grpc.stub.StreamObserver;
 
 public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServiceGrpc.ReadBlackGameOperationServiceImplBase {
 
-    final private int EXIT_GAME = 0, PLACE_BET = 1;
+    private final int EXIT_GAME = 0, PLACE_BET = 1;
 
     @Override
     public void start(RedBlackGameOperationService.OperationRequest request,
@@ -35,12 +36,12 @@ public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServ
         responseObserver.onCompleted();
     }
 
-    private void placeBetOperation(StreamObserver responseObserver, String token, int position, int bet) {
+    private void placeBetOperation(StreamObserver<RedBlackGameOperationService.OperationResponse> responseObserver, String token, int position, int bet) {
         RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
-        room.placeBet(responseObserver, token, position, bet);
+        room.placeBet(responseObserver, TokenUtil.tokenToPlayerId(token), position, bet);
     }
 
-    private void sendOperationFailResponse(StreamObserver responseObserver) {
+    private void sendOperationFailResponse(StreamObserver<RedBlackGameOperationService.OperationResponse> responseObserver) {
         RedBlackGameOperationService.OperationResponse response =
                 RedBlackGameOperationService.OperationResponse.newBuilder()
                         .setStatus(-1).setMessage("錯誤操作").build();
