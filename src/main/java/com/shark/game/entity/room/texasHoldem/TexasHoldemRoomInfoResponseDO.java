@@ -8,10 +8,10 @@ import java.util.Map;
 
 @Data
 public class TexasHoldemRoomInfoResponseDO {
-    private List<BetPoolDo> betPoolList;
+    private long pot;
     private List<Integer> publicCardList;
     private Map<Integer, SeatDO> seatIdSeatMap;
     private int smallBlindPosition;
     private int bigBlindPosition;
-    private int status;
+    private int roomStatus;
 }

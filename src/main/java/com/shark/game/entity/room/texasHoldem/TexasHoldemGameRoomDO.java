@@ -1,7 +1,6 @@
 package com.shark.game.entity.room.texasHoldem;
 
 import com.google.gson.Gson;
-import com.shark.game.entity.player.PlayerDO;
 import com.shark.game.entity.room.BaseSeatRoomDO;
 import com.shark.game.entity.room.SeatDO;
 import com.shark.game.service.TexasHoldemGameService;
@@ -11,19 +10,20 @@ import java.util.*;
 
 public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
 
-    private long smallBlindBet;
+    private long smallBlindBet, callBet;
 
-    private int ROOM_STATUS_WAITING = 0 ,ROOM_STATUS_PRE_FLOP = 1, ROOM_STATUS_FLOP = 2, ROOM_STATUS_TURN = 3, ROOM_STATUS_RIVER = 4;
+    private final int ROOM_STATUS_WAITING = 0 ,ROOM_STATUS_PRE_FLOP = 1, ROOM_STATUS_FLOP = 2, ROOM_STATUS_TURN = 3, ROOM_STATUS_RIVER = 4, ROOM_STATUS_ALLOCATE_POT = 5;
 
-    private int  SEAT_STATUS_WAITING = 0, SEAT_STATUS_GAMING = 1;
+    private Integer roomStatus = ROOM_STATUS_WAITING;
 
-    private int SEAT_OPERATION_CALL = 1, SEAT_OPERATION_RAISE = 2,  SEAT_OPERATION_FOLD = 3;
+    private final int OPERATION_EXIT = 0, OPERATION_CALL = 1, OPERATION_RAISE = 2,  OPERATION_FOLD = 3;
 
-    private int RESPONSE_STATUS_ROOM_INFO = 0, RESPONSE_STATUS_CARD_INFO = 1 , RESPONSE_STATUS_START_OPERATION = 2;
+    private final int RESPONSE_STATUS_ROOM_INFO = 0, RESPONSE_STATUS_SEAT_INFO = 1,
+            RESPONSE_STATUS_CHANGE_STATUS = 2, RESPONSE_STATUS_PLAYER_CARD = 3,
+            RESPONSE_STATUS_START_OPERATION = 4, RESPONSE_STATUS_PUBLIC_CARD = 5;
 
     private Integer smallBlindSeatId = -1, bigBlindSeatId = -1, roundStartSeatId = -1, currentOperationSeatId = -1;
 
-    private Integer roomStatus = ROOM_STATUS_WAITING;
 
     private List<Integer> cardList = new ArrayList<>();
 
@@ -31,9 +31,9 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
 
     private Map<Integer, List<Integer>> seatIdCardListMap = new HashMap<>();
 
-    private List<BetPoolDo> betPoolList = new ArrayList<>();
+    private long pot;
 
-    private final int OPERATION_WAIT_TIME = 15000;
+    private final int WAIT_OPERATION_TIME = 15000;
 
     private Timer timer;
 
@@ -45,25 +45,6 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
     @Override
     protected synchronized void checkSeatLive() {
         notifyRoomInfo();
-    }
-
-    protected synchronized void notifyRoomInfo() {
-        TexasHoldemRoomInfoResponseDO texasHoldemRoomInfoResponseDO = new TexasHoldemRoomInfoResponseDO();
-        texasHoldemRoomInfoResponseDO.setBetPoolList(betPoolList);
-        texasHoldemRoomInfoResponseDO.setPublicCardList(publicCardList);
-        texasHoldemRoomInfoResponseDO.setSeatIdSeatMap(seatIdSeatMap);
-        String message = new Gson().toJson(texasHoldemRoomInfoResponseDO);
-        for(Integer seatId: seatIdSeatMap.keySet()) {
-            SeatDO seatDO = seatIdSeatMap.get(seatId);
-            if(seatDO != null) {
-                Long playerId = seatDO.getPlayerId();
-                boolean success = notifyStatusResponse(playerId, RESPONSE_STATUS_ROOM_INFO, message);
-                if(!success && roomStatus == ROOM_STATUS_WAITING) {
-                    seatIdSeatMap.remove(seatId);
-                    playerIdStatusObserverMap.remove(playerId);
-                }
-            }
-        }
     }
 
     @Override
@@ -129,16 +110,54 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
 
     private synchronized void startPreFlopStatus() {
         roomStatus = ROOM_STATUS_PRE_FLOP;
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_CHANGE_STATUS, String.valueOf(roomStatus));
+        callBet = smallBlindBet * 2;
+        pot = 0;
         dealPlayerCard();
         notifyCardInfo();
-        initBetPoolList();
         initSmallBlindSeatBet();
         initBigBlindSeatBet();
         initRoundStartSeatId();
-        notifyRoomInfo();
         currentOperationSeatId = roundStartSeatId;
+        notifyRoomInfo();
         notifySeatStartOperation();
         startWaitPositionOperation();
+    }
+
+    private synchronized void startFlopStatus() {
+        roomStatus = ROOM_STATUS_FLOP;
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_CHANGE_STATUS, String.valueOf(roomStatus));
+        List<Integer> dealCardList = dealPublicCard(3);
+        publicCardList.addAll(dealCardList);
+        notifyPublicCardToAllSeat(dealCardList);
+        notifySeatStartOperation();
+        startWaitPositionOperation();
+    }
+
+    private synchronized void startTurnStatus() {
+        roomStatus = ROOM_STATUS_TURN;
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_CHANGE_STATUS, String.valueOf(roomStatus));
+        List<Integer> dealCardList = dealPublicCard(1);
+        publicCardList.addAll(dealCardList);
+        notifyPublicCardToAllSeat(dealCardList);
+        notifySeatStartOperation();
+        startWaitPositionOperation();
+    }
+
+    private synchronized void startRiverStatus() {
+        roomStatus = ROOM_STATUS_RIVER;
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_CHANGE_STATUS, String.valueOf(roomStatus));
+        List<Integer> dealCardList = dealPublicCard(1);
+        publicCardList.addAll(dealCardList);
+        notifyPublicCardToAllSeat(dealCardList);
+        notifySeatStartOperation();
+        startWaitPositionOperation();
+    }
+
+    private void startAllocatePot() {
+        roomStatus = ROOM_STATUS_ALLOCATE_POT;
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_CHANGE_STATUS, String.valueOf(roomStatus));
+        //TODO
     }
 
     private synchronized void dealPlayerCard() {
@@ -165,14 +184,9 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
             if(seatDO != null) {
                 long playerId = seatDO.getPlayerId();
                 String message = new Gson().toJson(seatDO);
-                notifyStatusResponse(playerId, RESPONSE_STATUS_CARD_INFO, message);
+                notifyStatusResponse(playerId, RESPONSE_STATUS_PLAYER_CARD, message);
             }
         }
-    }
-
-    private void initBetPoolList() {
-        betPoolList.clear();
-        betPoolList.add(new BetPoolDo());
     }
 
     private synchronized void initSmallBlindSeatBet() {
@@ -182,9 +196,7 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
         money = money - bet;
         seatDO.setMoney(money);
         seatDO.setBetMoney(bet);
-        BetPoolDo betPool = betPoolList.get(0);
-        long betPoolBet = betPool.getBet() + bet;
-        betPool.setBet(betPoolBet);
+        pot = pot +bet;
     }
 
     private synchronized void initBigBlindSeatBet() {
@@ -194,9 +206,7 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
         money = money - bet;
         seatDO.setMoney(money);
         seatDO.setBetMoney(bet);
-        BetPoolDo betPool = betPoolList.get(0);
-        long betPoolBet = betPool.getBet() + bet;
-        betPool.setBet(betPoolBet);
+        pot = pot +bet;
     }
 
     private synchronized void initRoundStartSeatId() {
@@ -210,39 +220,47 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
         }
     }
 
-    private void notifySeatStartOperation() {
-        //TODO
-        notifyStatusResponse(currentOperationSeatId, RESPONSE_STATUS_START_OPERATION, null);
-    }
-
-    private void startWaitPositionOperation() {
+    private synchronized void startWaitPositionOperation() {
         timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 SeatDO seatDO = seatIdSeatMap.get(currentOperationSeatId);
-                seatDO.setOperation(SEAT_OPERATION_FOLD);
+                seatDO.setOperation(OPERATION_FOLD);
                 int countGamingSeatSize = countGamingSeatSize();
                 if(countGamingSeatSize > 1) {
                     changeSeatPosition();
                 } else {
-                    //TODO
+                    startAllocatePot();
                 }
             }
-        }, OPERATION_WAIT_TIME);
+        }, WAIT_OPERATION_TIME);
     }
 
-    private void changeSeatPosition() {
+    private synchronized void changeSeatPosition() {
         currentOperationSeatId = currentOperationSeatId + 1;
         if (currentOperationSeatId >= roundStartSeatId) {
             //換下一回合
-            //TODO
+            switch (roomStatus) {
+                case ROOM_STATUS_PRE_FLOP:
+                    startFlopStatus();
+                    break;
+                case ROOM_STATUS_FLOP:
+                    startTurnStatus();
+                    break;
+                case ROOM_STATUS_TURN:
+                    startRiverStatus();
+                    break;
+                case ROOM_STATUS_RIVER:
+                    startAllocatePot();
+                    break;
+            }
         } else {
             notifySeatStartOperation();
         }
     }
 
-    private int countGamingSeatSize() {
+    private synchronized int countGamingSeatSize() {
         int count = 0;
         for(int i = 0; i < maxSeatCount; i ++) {
             SeatDO seatDO = seatIdSeatMap.get(i);
@@ -253,8 +271,91 @@ public class TexasHoldemGameRoomDO extends BaseSeatRoomDO {
         return count;
     }
 
+    private synchronized List<Integer> dealPublicCard(int count) {
+        List<Integer> dealCardList = new ArrayList<>();
+        for(int i = 0; i < count; i ++) {
+            int dealCardIndex = new Random().nextInt(cardList.size());
+            Integer card = cardList.get(dealCardIndex);
+            cardList.remove(dealCardIndex);
+            dealCardList.add(card);
+        }
+        return dealCardList;
+    }
+
+    public void operation(long playerId, int operation, long bet) {
+        int seatId = playerIdSeatIdMap.get(playerId);
+        if(seatId == currentOperationSeatId) {
+            timer.cancel();
+        }
+        switch (operation) {
+            case OPERATION_EXIT:
+                break;
+            case OPERATION_CALL:
+                break;
+            case OPERATION_RAISE:
+                break;
+            case OPERATION_FOLD:
+                operationFold(seatId);
+                break;
+        }
+    }
+
+    private void operationFold(int seatId) {
+        if(seatId != currentOperationSeatId) {
+            return;
+        }
+        SeatDO seatDO = seatIdSeatMap.get(seatId);
+        seatDO.setOperation(OPERATION_FOLD);
+        notifySeatInfo(seatDO);
+        changeSeatPosition();
+    }
+
+    private synchronized void notifySeatStartOperation() {
+        SeatDO seatDO = seatIdSeatMap.get(currentOperationSeatId);
+        TexasHoldemStartOperationResponseDO startOperationResponseDO = new TexasHoldemStartOperationResponseDO();
+        startOperationResponseDO.setPlayerId(seatDO.getPlayerId());
+        startOperationResponseDO.setCallBet(callBet - seatDO.getBetMoney());
+        String message = new Gson().toJson(startOperationResponseDO);
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_START_OPERATION, message);
+    }
+
+    protected synchronized void notifyRoomInfo() {
+        TexasHoldemRoomInfoResponseDO texasHoldemRoomInfoResponseDO = new TexasHoldemRoomInfoResponseDO();
+        texasHoldemRoomInfoResponseDO.setPot(pot);
+        texasHoldemRoomInfoResponseDO.setPublicCardList(publicCardList);
+        texasHoldemRoomInfoResponseDO.setSeatIdSeatMap(seatIdSeatMap);
+        String message = new Gson().toJson(texasHoldemRoomInfoResponseDO);
+        for(Integer seatId: seatIdSeatMap.keySet()) {
+            SeatDO seatDO = seatIdSeatMap.get(seatId);
+            if(seatDO != null) {
+                Long playerId = seatDO.getPlayerId();
+                boolean success = notifyStatusResponse(playerId, RESPONSE_STATUS_ROOM_INFO, message);
+                if(!success && roomStatus == ROOM_STATUS_WAITING) {
+                    exitGame(playerId);
+                }
+            }
+        }
+    }
+
+    private void notifySeatInfo(SeatDO seatDO) {
+        String message = new Gson().toJson(seatDO);
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_SEAT_INFO, message);
+    }
+
+    private synchronized void notifyPublicCardToAllSeat(List<Integer> dealCardList) {
+        Gson gson = new Gson();
+        String message = gson.toJson(dealCardList);
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_PUBLIC_CARD, message);
+    }
+
+    private synchronized void notifyAllPlayerStatusResponse(int status, String message) {
+        for(Long playerId: playerIdObserverMap.keySet()) {
+            notifyStatusResponse(playerId, status, message);
+        }
+    }
+
     private synchronized boolean notifyStatusResponse(long playerId, int status, String message) {
-        StreamObserver streamObserver = playerIdStatusObserverMap.get(playerId);
+        StreamObserver streamObserver = playerIdObserverMap.get(playerId);
         if(streamObserver == null) {
             return false;
         }

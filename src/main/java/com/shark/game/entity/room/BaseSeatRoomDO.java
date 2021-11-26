@@ -10,12 +10,10 @@ public abstract class BaseSeatRoomDO extends BaseRoomDO {
 
     protected int maxSeatCount, minSeatCount;
 
-    protected final Map<Long, StreamObserver> playerIdStatusObserverMap = new HashMap<>();
+    protected final int SEAT_STATUS_WAITING = 0, SEAT_STATUS_GAMING = 1;
 
-    protected int SEAT_STATUS_WAITING = 0;
-
-    protected Map<Integer, SeatDO> seatIdSeatMap = new HashMap<>();
-
+    protected final Map<Long, Integer> playerIdSeatIdMap = new HashMap<>();
+    protected final Map<Integer, SeatDO> seatIdSeatMap = new HashMap<>();
 
     public BaseSeatRoomDO(int agentId, int gameType, int minBet, int maxSeatCount, int minSeatCount) {
         super(agentId, gameType, minBet);
@@ -37,6 +35,7 @@ public abstract class BaseSeatRoomDO extends BaseRoomDO {
 
     private void startWaitingStatus() {
         System.out.println("CardSeatRoomDO startWaitingStatus()");
+        changeSeatListStatus(SEAT_STATUS_WAITING);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
@@ -56,11 +55,18 @@ public abstract class BaseSeatRoomDO extends BaseRoomDO {
     public synchronized boolean enterGame(StreamObserver observer, long playerId) {
         List<Integer> emptySeatIdList = findEmptySeatIdList();
         if (emptySeatIdList.size() < maxSeatCount) {
-            playerIdStatusObserverMap.put(playerId, observer);
+            playerIdObserverMap.put(playerId, observer);
             addPlayerToRandomSeat(playerId, emptySeatIdList);
             return true;
         }
         return false;
+    }
+
+    public synchronized void exitGame(long playerId) {
+        Integer seatId = playerIdSeatIdMap.get(playerId);
+        seatIdSeatMap.remove(seatId);
+        playerIdObserverMap.remove(playerId);
+        playerIdSeatIdMap.remove(playerId);
     }
 
     protected void addPlayerToRandomSeat(long playerId, List<Integer> emptySeatIdList) {
