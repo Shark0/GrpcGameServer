@@ -9,8 +9,8 @@ mvn -DskipTests package
 ## 啟動專案
 直接啟動Main Class
 
-## Client專案
-https://github.com/Shark0/GrpcGameClient
+## 德州撲克Android專案
+https://github.com/Shark0/SharkGame
 
 ## 遊戲
 ### 剪刀石頭布
@@ -32,9 +32,8 @@ https://github.com/Shark0/GrpcGameClient
 * 接收房間狀態的Request
 * 影響房間狀態的Request
 
-### 卡牌比大小
-座位遊戲，遊戲內容有三個回合，每個回合個玩家各抽一張卡牌，每回合輪流決定跟牌或棄牌。
-房間負責管理玩家排隊、回合初始動作、以及座位輪流操作，接收Client請求設定押注內容，可以修改成炸金花、德州鋪課、21點等遊戲。
+### 德州撲克
+座位遊戲，房間負責管理玩家排隊、回合動作、以及座位輪流操作，接收Client請求設定押注內容。
 
 透過兩個gRpc Request實作。
 * 接收房間狀態的Request

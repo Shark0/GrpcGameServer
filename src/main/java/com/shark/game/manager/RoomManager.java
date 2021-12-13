@@ -3,6 +3,7 @@ package com.shark.game.manager;
 import com.shark.game.entity.room.BaseRoomDO;
 import com.shark.game.entity.room.RedBlackGameRoomDO;
 import com.shark.game.entity.room.RockPaperScissorsGameRoomDO;
+import com.shark.game.entity.room.texasHoldEm.TexasHoldEmGameRoomDO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,11 +13,11 @@ public class RoomManager {
 
     public static final int ROCK_PAPER_SCISSORS_ROOM_TYPE = 1;
     public static final int RED_BLACK_ROOM_TYPE = 2;
-    public static final int CARD_SEAT_ROOM_TYPE = 3;
+    public static final int TEXAS_HOLDEM_ROOM_TYPE = 3;
 
     private static RoomManager instance;
 
-    private final Map<String, BaseRoomDO> tokenRoomMap = new HashMap<>();
+    private final Map<Long, BaseRoomDO> playerIdRoomMap = new HashMap<>();
 
     private final Map<Integer, Map<Integer, BaseRoomDO>> agentIdRoomTypeRoomMap = new HashMap<>();
 
@@ -27,11 +28,16 @@ public class RoomManager {
     public void init() {
         List<Integer> agentIdList = findAgent();
         for(Integer agentId: agentIdList) {
-            RedBlackGameRoomDO redBlackGameRoom = new RedBlackGameRoomDO(agentId, RED_BLACK_ROOM_TYPE, 10);
-            redBlackGameRoom.init();
             Map<Integer, BaseRoomDO> roomIdRoomMap = new HashMap<>();
-            roomIdRoomMap.put(RED_BLACK_ROOM_TYPE, redBlackGameRoom);
             agentIdRoomTypeRoomMap.put(agentId, roomIdRoomMap);
+
+            RedBlackGameRoomDO redBlackGameRoom = new RedBlackGameRoomDO(agentId, RED_BLACK_ROOM_TYPE, 10);
+            roomIdRoomMap.put(RED_BLACK_ROOM_TYPE, redBlackGameRoom);
+
+
+            TexasHoldEmGameRoomDO texasHoldemGameRoomDO =
+                    new TexasHoldEmGameRoomDO(agentId, TEXAS_HOLDEM_ROOM_TYPE, 20000, 50, 12, 2);
+            roomIdRoomMap.put(TEXAS_HOLDEM_ROOM_TYPE, texasHoldemGameRoomDO);
         }
     }
 
@@ -46,21 +52,18 @@ public class RoomManager {
                 return new RockPaperScissorsGameRoomDO(agentId, roomType, 10);
 
             case RED_BLACK_ROOM_TYPE:
+            case TEXAS_HOLDEM_ROOM_TYPE:
                 return agentIdRoomTypeRoomMap.get(agentId).get(roomType);
-
-            case CARD_SEAT_ROOM_TYPE:
-                //TODO
-                return null;
         }
         return null;
     }
 
-    public synchronized void putRoomByToken(String token, BaseRoomDO room) {
-        tokenRoomMap.put(token, room);
+    public synchronized void putRoom(Long playerId, BaseRoomDO room) {
+        playerIdRoomMap.put(playerId, room);
     }
 
-    public BaseRoomDO getRoomByToken(String token) {
-        return tokenRoomMap.get(token);
+    public BaseRoomDO getRoom(Long playerId) {
+        return playerIdRoomMap.get(playerId);
     }
 
     public static RoomManager getInstance() {

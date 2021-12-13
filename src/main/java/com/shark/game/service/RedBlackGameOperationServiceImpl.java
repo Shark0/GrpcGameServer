@@ -27,7 +27,8 @@ public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServ
     }
 
     private void exitRoomOperation(StreamObserver<RedBlackGameOperationService.OperationResponse> responseObserver, String token) {
-        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
+        Long playerId = TokenUtil.tokenToPlayerId(token);
+        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoom(playerId);
         room.exitGame(token);
         RedBlackGameOperationService.OperationResponse response =
                 RedBlackGameOperationService.OperationResponse.newBuilder()
@@ -37,7 +38,8 @@ public class RedBlackGameOperationServiceImpl extends ReadBlackGameOperationServ
     }
 
     private void placeBetOperation(StreamObserver<RedBlackGameOperationService.OperationResponse> responseObserver, String token, int position, int bet) {
-        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoomByToken(token);
+        Long playerId = TokenUtil.tokenToPlayerId(token);
+        RedBlackGameRoomDO room = (RedBlackGameRoomDO) RoomManager.getInstance().getRoom(playerId);
         room.placeBet(responseObserver, TokenUtil.tokenToPlayerId(token), position, bet);
     }
 

@@ -6,24 +6,29 @@ import com.shark.game.manager.PlayerManager;
 import com.shark.game.util.TokenUtil;
 import io.grpc.stub.StreamObserver;
 
-import java.util.Random;
+import java.util.Date;
 
 public class LoginServiceImpl extends LoginServiceGrpc.LoginServiceImplBase {
 
+
     @Override
     public void start(LoginServiceOuterClass.LoginRequest request, StreamObserver<LoginServiceOuterClass.LoginResponse> responseObserver) {
-        int playerId = request.getPlayerId();
+        String playerName = request.getPlayerName();
+        long playerId = new Date().getTime();
         PlayerDO player = findPlayer(playerId);
+        player.setName(playerName);
         String token = TokenUtil.playerIdToToken(playerId);
         PlayerManager.getInstance().putPlayer(player);
-        sendLoginSuccessResponse(responseObserver, token);
+        sendLoginSuccessResponse(responseObserver, token, player.getName(), player.getMoney());
     }
 
-    private void sendLoginSuccessResponse(StreamObserver<LoginServiceOuterClass.LoginResponse> responseObserver,
-                                          String token) {
+    private void sendLoginSuccessResponse(
+            StreamObserver<LoginServiceOuterClass.LoginResponse> responseObserver,
+            String token, String playerName, long playerMoney) {
         LoginServiceOuterClass.LoginResponse response =
                 LoginServiceOuterClass.LoginResponse.newBuilder()
-                        .setStatus(0).setToken(token).build();
+                        .setStatus(1).setToken(token).setName(playerName).setMoney(playerMoney)
+                        .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
@@ -34,7 +39,7 @@ public class LoginServiceImpl extends LoginServiceGrpc.LoginServiceImplBase {
         playerDo.setId(playerId);
         playerDo.setAgentId(1);
         playerDo.setName("Player" + playerId);
-        int money = new Random().nextInt(10000) + 100000;
+        int money = 20000;
         playerDo.setMoney(money);
         return playerDo;
     }

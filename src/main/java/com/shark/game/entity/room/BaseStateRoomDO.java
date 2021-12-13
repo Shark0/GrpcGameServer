@@ -13,9 +13,10 @@ public abstract class BaseStateRoomDO extends BaseRoomDO {
 
     public BaseStateRoomDO(int agentId, int gameType, int minBet) {
         super(agentId, gameType, minBet);
+        init();
     }
 
-    public void init() {
+    private void init() {
         statusTimeMap = generateTimeStateList();
         status = STATUS_START;
         statusTime = statusTimeMap.get(status);

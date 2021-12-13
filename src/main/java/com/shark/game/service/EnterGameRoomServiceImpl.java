@@ -3,12 +3,12 @@ package com.shark.game.service;
 import com.shark.game.entity.player.PlayerDO;
 import com.shark.game.entity.room.RedBlackGameRoomDO;
 import com.shark.game.entity.room.RockPaperScissorsGameRoomDO;
+import com.shark.game.entity.room.texasHoldEm.TexasHoldEmGameRoomDO;
 import com.shark.game.manager.PlayerManager;
 import com.shark.game.manager.RoomManager;
 import io.grpc.stub.StreamObserver;
 
-import static com.shark.game.manager.RoomManager.RED_BLACK_ROOM_TYPE;
-import static com.shark.game.manager.RoomManager.ROCK_PAPER_SCISSORS_ROOM_TYPE;
+import static com.shark.game.manager.RoomManager.*;
 
 public class EnterGameRoomServiceImpl extends EnterGameRoomServiceGrpc.EnterGameRoomServiceImplBase{
 
@@ -19,22 +19,25 @@ public class EnterGameRoomServiceImpl extends EnterGameRoomServiceGrpc.EnterGame
         long playerId = Long.parseLong(token);
         PlayerDO playerDO = PlayerManager.getInstance().findById(playerId);
         int roomType = request.getRoomType();
-
+        System.out.println("EnterGameRoomServiceImpl start roomType: " + roomType);
         switch (roomType) {
             case 1: //猜拳
                 RockPaperScissorsGameRoomDO rockPaperScissorsGameRoom = new RockPaperScissorsGameRoomDO(
                         playerDO.getAgentId(), ROCK_PAPER_SCISSORS_ROOM_TYPE, 10);
-                RoomManager.getInstance().putRoomByToken(token, rockPaperScissorsGameRoom);
+                RoomManager.getInstance().putRoom(playerId, rockPaperScissorsGameRoom);
                 sendEnterRoomResponse(responseObserver);
                 break;
             case 2:
                 RedBlackGameRoomDO redBlackGameRoom =
                         (RedBlackGameRoomDO) RoomManager.getInstance().findRoomByAgentIdAndRoomType(playerDO.getAgentId(), RED_BLACK_ROOM_TYPE);
-                RoomManager.getInstance().putRoomByToken(token, redBlackGameRoom);
+                RoomManager.getInstance().putRoom(playerId, redBlackGameRoom);
                 sendEnterRoomResponse(responseObserver);
                 break;
             case 3:
-                //TODO
+                TexasHoldEmGameRoomDO texasHoldemGameRoomDO =
+                        (TexasHoldEmGameRoomDO) RoomManager.getInstance().findRoomByAgentIdAndRoomType(playerDO.getAgentId(), TEXAS_HOLDEM_ROOM_TYPE);
+                RoomManager.getInstance().putRoom(playerId, texasHoldemGameRoomDO);
+                sendEnterRoomResponse(responseObserver);
                 break;
             default:
                 sendNotFindRoomResponse(responseObserver);

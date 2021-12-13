@@ -2,12 +2,14 @@ syntax = "proto3";
 package com.shark.game.service;
 
 message LoginRequest {
-  int32 playerId = 1;
+  string playerName = 1;
 }
 
 message LoginResponse {
-  string token = 1;
-  int32 status = 2;
+  int32 status = 1;
+  string token = 2;
+  string name = 3;
+  int64 money = 4;
 }
 
 service LoginService {

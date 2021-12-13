@@ -4,6 +4,7 @@ package com.shark.game.service;
 message TexasHoldemGameOperationRequest {
   string token = 1;
   int32 operation = 2;
+  int64 bet = 3;
 }
 
 message TexasHoldemGameOperationResponse {
