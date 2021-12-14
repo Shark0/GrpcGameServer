@@ -1,13 +1,16 @@
 # GRPC Server
 簡單的遊戲範例，目前沒有做到thread safe的處理。
 
-## 建置專案
+## 啟動專案
+```
+mvn clean package
+java -jar .\target\GameServer-1.0-SNAPSHOT.jar
+```
+
+## 建置專案 Grpc服務
 ```
 mvn -DskipTests package
 ```
-
-## 啟動專案
-直接啟動Main Class
 
 ## 德州撲克Android專案
 https://github.com/Shark0/SharkGame
