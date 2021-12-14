@@ -20,9 +20,11 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
     private final int OPERATION_NONE = -1, OPERATION_EXIT = 0, OPERATION_CALL = 1, OPERATION_RAISE = 2, OPERATION_ALL_IN = 3,
             OPERATION_FOLD = 4, OPERATION_STAND_UP = 5, OPERATION_SIT_DOWN = 6;
 
-    public static final int RESPONSE_STATUS_SIT_DOWN = 0, RESPONSE_STATUS_NO_SEAT = 1, RESPONSE_STATUS_SEAT_INFO = 2, RESPONSE_STATUS_ROOM_INFO = 3,
-            RESPONSE_STATUS_CHECK_SEAT_LIVE = 4, RESPONSE_STATUS_CHANGE_STATUS = 5, RESPONSE_STATUS_SEAT_CARD = 6,
-            RESPONSE_STATUS_START_OPERATION = 7, RESPONSE_STATUS_SEAT_OPERATION = 8, RESPONSE_STATUS_PUBLIC_CARD = 9, RESPONSE_STATUS_WIN_POT_BET = 10;
+    public static final int RESPONSE_STATUS_SIT_DOWN = 0, RESPONSE_STATUS_NO_SEAT = 1, RESPONSE_STATUS_SEAT_INFO = 2,
+            RESPONSE_STATUS_ENTER_ROOM_INFO = 3, RESPONSE_STATUS_ROOM_INFO = 4, RESPONSE_STATUS_CHECK_SEAT_LIVE = 5,
+            RESPONSE_STATUS_CHANGE_STATUS = 6, RESPONSE_STATUS_SEAT_CARD = 7, RESPONSE_STATUS_START_OPERATION = 8,
+            RESPONSE_STATUS_WAIT_SEAT_OPERATION = 9, RESPONSE_STATUS_SEAT_OPERATION = 10, RESPONSE_STATUS_PUBLIC_CARD = 11,
+            RESPONSE_STATUS_WIN_POT_BET = 12;
 
     private final int OPERATION_WAIT_TIME = 20000;
 
@@ -40,7 +42,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
 
     private final Map<Integer, TexasHoldEmHandCardDO> seatIdHandCardMap = new HashMap<>();
 
-    private SeatWaitOperationDO waitOperationThread;
+    private SeatWaitOperationDO seatWaitOperation;
 
     public TexasHoldEmGameRoomDO(int agentId, int gameType, int minBet, int smallBlindBet, int maxQueueCount, int minQueueCount) {
         super(agentId, gameType, minBet, maxQueueCount, minQueueCount);
@@ -51,7 +53,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
     protected void sitDown(long playerId, int seatId) {
         allocatePlayerSeat(playerId, seatId);
         notifySitDown(playerId, seatId);
-        notifyRoomInfo();
+        notifySeatInfo(seatId);
     }
 
     @Override
@@ -388,13 +390,18 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
 
     private void startWaitPositionOperation() {
         System.out.println("TexasHoldemGameRoomDO startWaitPositionOperation()");
-        waitOperationThread = new SeatWaitOperationDO(currentOperationSeatId, false, OPERATION_WAIT_TIME) {
+        seatWaitOperation = new SeatWaitOperationDO(currentOperationSeatId, false, OPERATION_WAIT_TIME) {
+            @Override
+            public void waitOperation(int seatId, long lastOperationTime) {
+                notifyWaitOperation(seatId, lastOperationTime);
+            }
+
             @Override
             public void startFoldOperation(int seatId) {
                 operationFold(seatIdSeatMap.get(seatId).getPlayerId());
             }
         };
-        waitOperationThread.run();
+        seatWaitOperation.run();
     }
 
 
@@ -647,7 +654,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
         }
 
         if (seatId == currentOperationSeatId) {
-            waitOperationThread.setOperation(true);
+            seatWaitOperation.setOperation(true);
         }
         new Thread(() -> {
             exitGame(playerId);
@@ -669,6 +676,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
                     roomStatus == ROOM_STATUS_RIVER) {
                 int canBetSeatSize = countCanBetSeatSize();
                 if (canBetSeatSize == 1) {
+                    seatWaitOperation.setOperation(true);
                     startAllocatePot();
                 } else {
                     if (seatId == currentOperationSeatId) {
@@ -689,7 +697,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
         if (seatId != currentOperationSeatId) {
             return false;
         }
-        waitOperationThread.setOperation(true);
+        seatWaitOperation.setOperation(true);
         new Thread(() -> {
             SeatDO seatDO = seatIdSeatMap.get(seatId);
             PlayerDO playerDO = PlayerManager.getInstance().findById(playerId);
@@ -726,7 +734,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
         if (seatId != currentOperationSeatId) {
             return false;
         }
-        waitOperationThread.setOperation(true);
+        seatWaitOperation.setOperation(true);
         new Thread(() -> {
             this.roundStartSeatId = seatId;
             SeatDO seatDO = seatIdSeatMap.get(seatId);
@@ -779,7 +787,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
             return false;
         }
 
-        waitOperationThread.setOperation(true);
+        seatWaitOperation.setOperation(true);
         new Thread(() -> {
             notifySeatOperation(seatId, OPERATION_FOLD, 0);
             SeatDO seatDO = seatIdSeatMap.get(seatId);
@@ -799,7 +807,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
         }
 
         if (seatId == currentOperationSeatId) {
-            waitOperationThread.setOperation(true);
+            seatWaitOperation.setOperation(true);
         }
         new Thread(() -> {
             playerIdSeatIdMap.remove(playerId);
@@ -824,6 +832,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
                     roomStatus == ROOM_STATUS_RIVER) {
                 int canBetSeatSize = countCanBetSeatSize();
                 if (canBetSeatSize == 1) {
+                    seatWaitOperation.setOperation(true);
                     startAllocatePot();
                 } else {
                     if (seatId == currentOperationSeatId) {
@@ -844,6 +853,20 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
             notifyNoSeat(playerId);
         }
         return true;
+    }
+
+    @Override
+    protected void notifyRoomInfo(long playerId) {
+        TexasHoldEmRoomInfoResponseDO texasHoldemRoomInfoResponseDO = new TexasHoldEmRoomInfoResponseDO();
+        texasHoldemRoomInfoResponseDO.setRoomStatus(roomStatus);
+        texasHoldemRoomInfoResponseDO.setSmallBlindSeatId(smallBlindSeatId);
+        texasHoldemRoomInfoResponseDO.setBigBlindSeatId(bigBlindSeatId);
+        texasHoldemRoomInfoResponseDO.setCurrentOperationSeatId(currentOperationSeatId);
+        texasHoldemRoomInfoResponseDO.setRoomBet(roomGameBet);
+        texasHoldemRoomInfoResponseDO.setPublicCardList(publicCardList);
+        texasHoldemRoomInfoResponseDO.setSeatIdSeatMap(seatIdSeatMap);
+        String message = new Gson().toJson(texasHoldemRoomInfoResponseDO);
+        notifyStatusResponse(playerId, RESPONSE_STATUS_ENTER_ROOM_INFO, message);
     }
 
     @Override
@@ -901,9 +924,17 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
             startOperationResponseDO.setCallBet(seatDO.getMoney());
         }
 
-        startOperationResponseDO.setOperationTime(OPERATION_WAIT_TIME);
+        startOperationResponseDO.setLastOperationTime(OPERATION_WAIT_TIME);
         String message = new Gson().toJson(startOperationResponseDO);
         notifyAllPlayerStatusResponse(RESPONSE_STATUS_START_OPERATION, message);
+    }
+
+    private void notifyWaitOperation(int seatId, long lastOperationTime) {
+        TexasHoldEmWaitOperationResponseDO waitOperationResponseDO = new TexasHoldEmWaitOperationResponseDO();
+        waitOperationResponseDO.setSeatId(seatId);
+        waitOperationResponseDO.setLastOperationTime(lastOperationTime);
+        String message = new Gson().toJson(waitOperationResponseDO);
+        notifyAllPlayerStatusResponse(RESPONSE_STATUS_WAIT_SEAT_OPERATION, message);
     }
 
     private void notifySeatOperation(int seatId, int operation, long bet) {

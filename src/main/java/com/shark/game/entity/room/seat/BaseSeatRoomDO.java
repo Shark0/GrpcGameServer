@@ -75,11 +75,15 @@ public abstract class BaseSeatRoomDO extends BaseRoomDO {
         List<Integer> emptySeatIdList = findEmptySeatIdList();
         if (emptySeatIdList.size() > 0) {
             int emptySeatId = new Random().nextInt(emptySeatIdList.size());
+            notifyRoomInfo(playerId);
             sitDown(playerId, emptySeatIdList.get(emptySeatId));
         } else {
             notifyNoSeat(playerId);
+            notifyRoomInfo();
         }
     }
+
+    protected abstract void notifyRoomInfo(long playerId);
 
     protected abstract void sitDown(long playerId, int seatId);
 

@@ -9,5 +9,5 @@ public class TexasHoldEmStartOperationResponseDO {
     private long minRaiseBet;
     private boolean isCanRaise;
     private long callBet;
-    private long operationTime;
+    private long lastOperationTime;
 }
