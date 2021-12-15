@@ -664,7 +664,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
                 seatDO.setPlayerName("");
                 seatDO.setStatus(SEAT_STATUS_EXIT);
                 seatDO.setOperation(OPERATION_EXIT);
-                notifySeatOperation(seatId, OPERATION_EXIT, 0);
+                notifySeatOperation(seatId, OPERATION_EXIT, 0, 0);
                 notifySeatInfo(seatId);
             } else {
                 seatIdSeatMap.remove(seatId);
@@ -712,10 +712,10 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
 
             if (seatMoney == 0) {
                 seatDO.setOperation(OPERATION_ALL_IN);
-                notifySeatOperation(seatId, OPERATION_ALL_IN, bet);
+                notifySeatOperation(seatId, OPERATION_ALL_IN, seatDO.getMoney(), seatDO.getRoundBet());
             } else {
                 seatDO.setOperation(OPERATION_CALL);
-                notifySeatOperation(seatId, OPERATION_CALL, bet);
+                notifySeatOperation(seatId, OPERATION_CALL, seatDO.getMoney(), seatDO.getRoundBet());
             }
 
             this.roomGameBet = this.roomGameBet + bet;
@@ -759,10 +759,10 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
             System.out.println("TexasHoldemGameRoomDO operationCall(): this.roundRaiseBet = " + this.roundRaiseBet);
             if (seatMoney == 0) {
                 seatDO.setOperation(OPERATION_ALL_IN);
-                notifySeatOperation(seatId, OPERATION_ALL_IN, bet);
+                notifySeatOperation(seatId, OPERATION_ALL_IN, seatDO.getMoney(), seatDO.getRoundBet());
             } else {
                 seatDO.setOperation(OPERATION_RAISE);
-                notifySeatOperation(seatId, OPERATION_RAISE, bet);
+                notifySeatOperation(seatId, OPERATION_RAISE, seatDO.getMoney(), seatDO.getRoundBet());
             }
 
             notifySeatInfo(seatId);
@@ -789,7 +789,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
 
         seatWaitOperation.setOperation(true);
         new Thread(() -> {
-            notifySeatOperation(seatId, OPERATION_FOLD, 0);
+            notifySeatOperation(seatId, OPERATION_FOLD, 0,0);
             SeatDO seatDO = seatIdSeatMap.get(seatId);
             seatDO.setStatus(SEAT_STATUS_WAITING);
             seatDO.setOperation(OPERATION_FOLD);
@@ -820,7 +820,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
                 seatDO.setPlayerName("");
                 seatDO.setStatus(SEAT_STATUS_STAND_UP);
                 seatDO.setOperation(OPERATION_STAND_UP);
-                notifySeatOperation(seatId, OPERATION_STAND_UP, 0);
+                notifySeatOperation(seatId, OPERATION_STAND_UP, 0,0);
                 notifySeatInfo(seatId);
             } else {
                 seatIdSeatMap.remove(seatId);
@@ -937,7 +937,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
         notifyAllPlayerStatusResponse(RESPONSE_STATUS_WAIT_SEAT_OPERATION, message);
     }
 
-    private void notifySeatOperation(int seatId, int operation, long bet) {
+    private void notifySeatOperation(int seatId, int operation, long money, long bet) {
         System.out.println("TexasHoldemGameRoomDO notifySeatStartOperation()");
         TexasHoldEmSeatOperationResponseDO texasHoldEmSeatOperationDO = new TexasHoldEmSeatOperationResponseDO();
         texasHoldEmSeatOperationDO.setSeatId(seatId);
@@ -996,7 +996,7 @@ public class TexasHoldEmGameRoomDO extends BaseSeatRoomDO {
             return true;
         } catch (Exception e) {
             System.out.println("TexasHoldEmGameRoomDO notifyStatusResponse() e: " + e.getMessage());
-            e.printStackTrace();
+//            e.printStackTrace();
             return false;
         }
     }

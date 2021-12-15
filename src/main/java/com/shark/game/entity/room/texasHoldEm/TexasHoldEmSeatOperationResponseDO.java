@@ -6,6 +6,7 @@ import lombok.Data;
 public class TexasHoldEmSeatOperationResponseDO {
     private int seatId;
     private int operation;
+    private long money;
     private long bet;
     private long roomGameBet;
 }

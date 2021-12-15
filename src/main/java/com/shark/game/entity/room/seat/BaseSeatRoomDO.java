@@ -96,6 +96,7 @@ public abstract class BaseSeatRoomDO extends BaseRoomDO {
         StreamObserver streamObserver = playerIdObserverMap.get(playerId);
         if(streamObserver != null) {
             streamObserver.onCompleted();
+            System.out.println("BaseSeatDO exitGame(): streamObserver.onCompleted()");
         }
         playerIdObserverMap.remove(playerId);
         playerIdSeatIdMap.remove(playerId);
