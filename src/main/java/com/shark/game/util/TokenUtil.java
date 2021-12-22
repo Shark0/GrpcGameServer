@@ -7,7 +7,7 @@ public class TokenUtil {
         return String.valueOf(playerId);
     }
 
-    public static Long tokenToPlayerId(String token) {
+    public static Long tokenToUserId(String token) {
         //FIXME Use JWT
         return Long.valueOf(token);
     }
